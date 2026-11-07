@@ -95,3 +95,5 @@ html,body{overflow-x:hidden} [data-testid="stHeader"]{display:none} .stMainBlock
 #tiny-surprise.cinematic[data-act="letter"] .cinema-stage{justify-content:flex-start;padding-top:30px;gap:14px}
 
 #tiny-surprise .intro-notice{font-size:12px;line-height:1.8;opacity:.85;overflow-wrap:anywhere}
+
+#tiny-surprise.finale button.music-toggle{align-self:center;width:auto;min-width:130px;min-height:44px;margin:8px 0 0;padding:9px 14px;font-size:11px;border:0;box-shadow:none;color:#825f78}
