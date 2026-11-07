@@ -1,0 +1,15 @@
+{
+  "friend_name": "규령", "nickname": "타몽",
+  "questions": [
+    {"title":"지금 기분은 어때?", "options":["좋아! ㅎㅎ", "그냥 그래~"]},
+    {"title":"지금 당장 받고 싶은 건?", "options":["맛있는 거!", "아무것도 안 하기"]},
+    {"title":"누가 널 엄청 아끼고 있다면?", "options":["당연하지 ㅋ", "에이 설마~"]}
+  ],
+  "letter_lines": ["규령아, 사실 이건 광고가 아니야.", "잠깐만 네 시간을 빌려서 하고 싶은 말이 있었어.", "너랑 별것 아닌 얘기로 웃는 순간들이 참 좋아.", "잘하고 있는 날도, 조금 지치는 날도 늘 네 편이 있다는 걸 기억해 줘.", "오늘은 네가 가장 많이 웃는 하루였으면 좋겠어.", "타몽에게 좋은 일들이 잔뜩 찾아오기를. 마음을 담아서 ♡"],
+  "letter_char_ms": 55, "letter_pause_ms": 850,
+  "timing": {"analyzing_ms":2600,"gacha_ms":2400,"ad_ms":1100,"countdown_ms":1000},
+  "assets": {"usagi_back":"assets/usagi_back.gif","usagi_front":"assets/usagi_front.gif","white_character_pink":"assets/white_character_pink.gif","character_trio":"assets/character_trio.gif","animated_line":"assets/animated_line.gif","cheering_character":"assets/cheering_character.gif","usagi_hands":"assets/usagi_hands.gif","ditto":null},
+  "celebration_title":"{name}아, 생일 축하해! 🎂",
+  "celebration_subtitle":"오늘의 주인공은 바로 너야, {nickname}!",
+  "celebration_message":"네가 좋아하는 것들과 다정한 순간들로 가득한 한 해가 되길. 오늘도, 앞으로도 많이 아껴 ♡"
+}
