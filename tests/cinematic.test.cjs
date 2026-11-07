@@ -6,7 +6,7 @@ const path=require('node:path');
 const rootDir=path.join(__dirname,'..');
 // A minimal DOM adapter keeps these tests focused on the real controller's timer
 // ownership and state transitions. Layout is checked separately in a browser.
-function harness(reduced=false){
+function harness(reduced=false,audioOptions={}){
  let clock=0,id=0;const queue=new Map(),slots=new Map();
  const context2d={setTransform(){},clearRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},arc(){},fill(){}};
  function element(key=''){
@@ -14,11 +14,14 @@ function harness(reduced=false){
   e.classList={add:(...v)=>{e.className=[...new Set([...e.className.split(' '),...v])].join(' ')},remove:v=>{e.className=e.className.split(' ').filter(x=>x!==v).join(' ')},toggle:(v,on)=>on?e.classList.add(v):e.classList.remove(v)};return e;
  }
  function get(key){if(key==='.current-paragraph'&&!slots.has(key))return null;if(!slots.has(key))slots.set(key,element(key));return slots.get(key)}
- const root=get('#tiny-surprise');const documentEvents=new Map();
- const ctx=vm.createContext({CONFIG:JSON.parse(fs.readFileSync(path.join(rootDir,'config/birthday.json'),'utf8')),document:{hidden:false,addEventListener:(t,f)=>documentEvents.set(t,f),removeEventListener:t=>documentEvents.delete(t),emit:t=>documentEvents.get(t)?.(),getElementById:()=>root,createElement:()=>element()},matchMedia:()=>({matches:reduced}),performance:{now:()=>clock},setTimeout:(fn,ms)=>{queue.set(++id,{fn,at:clock+Math.max(0,ms)});return id},clearTimeout:i=>queue.delete(i),requestAnimationFrame:fn=>{queue.set(++id,{fn:()=>fn(clock),at:clock+16});return id},cancelAnimationFrame:i=>queue.delete(i),devicePixelRatio:2,window:{addEventListener(){},removeEventListener(){}},console});
+ const root=get('#tiny-surprise');const documentEvents=new Map();const media=[];
+ const config=JSON.parse(fs.readFileSync(path.join(rootDir,'config/birthday.json'),'utf8'));config.bgm_available=audioOptions.available===true;
+ function create(tag){const e=element();if(tag==='audio'){e.paused=true;e.currentTime=0;e.playCalls=0;e.mode=audioOptions.mode||'resolve';e.play=function(){this.playCalls++;if(this.mode==='reject'){this.paused=true;return Promise.reject(Object.assign(new Error('Autoplay blocked'),{name:'NotAllowedError'}))}if(this.mode==='deferred')return new Promise(resolve=>{this.resolvePlay=()=>{this.paused=false;resolve()}});this.paused=false;return Promise.resolve()};e.pause=function(){this.paused=true};media.push(e)}return e}
+
+ const ctx=vm.createContext({CONFIG:config,document:{hidden:false,addEventListener:(t,f)=>{if(!documentEvents.has(t))documentEvents.set(t,new Set());documentEvents.get(t).add(f)},removeEventListener:(t,f)=>documentEvents.get(t)?.delete(f),emit:t=>documentEvents.get(t)?.forEach(f=>f()),getElementById:()=>root,body:element(),createElement:create},matchMedia:()=>({matches:reduced}),performance:{now:()=>clock},setTimeout:(fn,ms)=>{queue.set(++id,{fn,at:clock+Math.max(0,ms)});return id},clearTimeout:i=>queue.delete(i),requestAnimationFrame:fn=>{queue.set(++id,{fn:()=>fn(clock),at:clock+16});return id},cancelAnimationFrame:i=>queue.delete(i),devicePixelRatio:2,window:{addEventListener(){},removeEventListener(){}},console});
  const run=vm.runInContext('(function(){'+fs.readFileSync(path.join(rootDir,'frontend/app.js'),'utf8')+';return code=>eval(code)})()',ctx);
  function advance(ms){const end=clock+ms;let guard=0;for(;;){const items=[...queue].sort((a,b)=>a[1].at-b[1].at||a[0]-b[0]);if(!items.length||items[0][1].at>end)break;assert.ok(++guard<20000,'timer loop');const [i,t]=items[0];clock=t.at;queue.delete(i);t.fn()}clock=end}
- return {run,advance,get,root,queue};
+ return {run,advance,get,root,queue,media};
 }
 test('opening blackout, light, deliberate pause, you and envelope timing',()=>{
  const h=harness();h.run("enter('FAKE_AD_LETTER')");assert.equal(h.root.dataset.act,'blackout');h.advance(699);assert.equal(h.root.dataset.act,'blackout');h.advance(1);assert.equal(h.root.dataset.act,'dark');h.advance(2600);assert.equal(h.root.dataset.act,'light');h.advance(3200);assert.equal(h.root.dataset.act,'existence');h.advance(2800);assert.equal(h.root.dataset.act,'pause');h.advance(1999);assert.equal(h.root.dataset.act,'pause');h.advance(1);assert.equal(h.root.dataset.act,'you');h.advance(1800);assert.equal(h.root.dataset.act,'envelope');h.advance(2500);assert.equal(h.root.dataset.act,'letter');assert.equal(h.run('paragraphIndex'),0);
@@ -54,4 +57,25 @@ test('no fireworks on ordinary rendering, letter return or reduced motion',()=>{
 
 test('background visibility pauses the only animation loop and resumes without duplication',()=>{
  const h=harness();h.run("enter('WIN')");h.advance(3000);assert.equal(h.queue.size,1);h.run("document.hidden=true;document.emit('visibilitychange')");assert.equal(h.queue.size,0);h.advance(10000);assert.equal(h.run('fireworksActive'),true);h.run("document.hidden=false;document.emit('visibilitychange');document.emit('visibilitychange')");assert.equal(h.queue.size,1);h.advance(5600);assert.equal(h.run('fireworksActive'),false);assert.equal(h.queue.size,0);
+});
+
+const settle=()=>new Promise(resolve=>setImmediate(resolve));
+test('missing audio stays silent without a media element or playback request',async()=>{
+ const h=harness();h.run("enter('GACHA_SECOND');send('DRAW')");h.advance(5400);await settle();assert.equal(h.run('state'),'BIRTHDAY_FINALE');assert.equal(h.media.length,0);assert.equal(h.run('musicControl()'),'');assert.equal(h.run('bgmPlaying'),false);
+});
+test('second draw prepares silently; only finale plays at 40 percent; toggle and exit stop it',async()=>{
+ const h=harness(false,{available:true});h.run("enter('GACHA_SECOND');send('DRAW')");assert.equal(h.media.length,1);assert.equal(h.media[0].muted,true);assert.equal(h.media[0].volume,.4);await settle();assert.equal(h.media[0].paused,true);h.advance(5400);await settle();assert.equal(h.run('bgmPlaying'),true);assert.equal(h.media[0].muted,false);assert.equal(h.media[0].loop,true);h.run("send('MUSIC')");assert.equal(h.media[0].paused,true);assert.equal(h.media[0].muted,true);h.run("send('MUSIC')");await settle();assert.equal(h.media[0].paused,false);h.run("send('READ')");assert.equal(h.media[0].paused,true);assert.equal(h.media[0].currentTime,0);assert.equal(h.media.length,1);
+});
+test('autoplay rejection exposes manual playback fallback and manual activation recovers',async()=>{
+ const h=harness(false,{available:true,mode:'reject'});h.run("enter('BIRTHDAY_FINALE')");await settle();assert.equal(h.run('bgmPlaying'),false);assert.equal(h.get('.music-toggle').textContent,'🎵 음악 재생하기');h.media[0].mode='resolve';h.run("send('MUSIC')");await settle();assert.equal(h.run('bgmPlaying'),true);assert.equal(h.get('.music-toggle').textContent,'🔇 음악 끄기');
+});
+test('celebration replay rewinds the singleton and respects an explicit music-off choice',async()=>{
+ const h=harness(false,{available:true});h.run("enter('BIRTHDAY_FINALE')");await settle();h.media[0].currentTime=12;h.run("send('CELEBRATE')");await settle();assert.equal(h.media[0].currentTime,0);assert.equal(h.media.length,1);const calls=h.media[0].playCalls;h.run("send('CELEBRATE');send('CELEBRATE')");await settle();assert.equal(h.media[0].playCalls,calls);h.run("send('MUSIC')");h.advance(5600);h.run("send('CELEBRATE')");await settle();assert.equal(h.run('bgmPlaying'),false);assert.equal(h.media[0].paused,true);
+});
+test('late playback resolution and invalid media never leak sound outside the finale',async()=>{
+ const h=harness(false,{available:true,mode:'deferred'});h.run("enter('BIRTHDAY_FINALE');send('READ')");h.media[0].resolvePlay();await settle();assert.equal(h.media[0].paused,true);assert.equal(h.media[0].muted,true);assert.equal(h.run('bgmPlaying'),false);h.media[0].emit('error');assert.equal(h.run('bgmFailed'),true);assert.equal(h.run('musicControl()'),'');
+});
+
+test('hidden finale stops music and a late play response cannot restart background audio',async()=>{
+ const h=harness(false,{available:true,mode:'deferred'});h.run("enter('BIRTHDAY_FINALE');document.hidden=true;document.emit('visibilitychange')");h.media[0].resolvePlay();await settle();assert.equal(h.media[0].paused,true);assert.equal(h.media[0].muted,true);assert.equal(h.run('bgmPlaying'),false);h.run("document.hidden=false;document.emit('visibilitychange')");assert.equal(h.media[0].paused,true);
 });

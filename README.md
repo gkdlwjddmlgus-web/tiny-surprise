@@ -41,7 +41,7 @@ streamlit run app.py
 
 iframe은 화면 전체 크기로 표시되며 HTML/CSS/Vanilla JS가 상태와 타이머를 소유합니다. Python 위젯이나 rerun에 의존하는 장면 전환은 없습니다. 리로드 시 처음부터 시작하며 서버 저장은 없습니다. Streamlit의 개발 파일 감지로 코드가 바뀌면 앱이 재실행될 수 있습니다.
 
-공식 static serving은 `.streamlit/config.toml`의 `server.enableStaticServing=true`로 활성화합니다. 이미지 URL은 `app/static/assets/...`이며 로컬에서 HTTP 200 / `image/gif` 응답을 확인했습니다. 외부 CDN, 웹 폰트, 광고, 분석 코드, 소리, API 호출은 없습니다. Streamlit 자체 사용량 통계도 비활성화했습니다.
+공식 static serving은 `.streamlit/config.toml`의 `server.enableStaticServing=true`로 활성화합니다. 이미지 URL은 `app/static/assets/...`이며 로컬에서 HTTP 200 / `image/gif` 응답을 확인했습니다. 외부 CDN, 웹 폰트, 광고, 분석 코드, API 호출은 없습니다. 피날레 음악은 아래 BGM 설정을 참고하세요. Streamlit 자체 사용량 통계도 비활성화했습니다.
 
 ## 파일
 
@@ -94,3 +94,15 @@ node --test tests/cinematic.test.cjs
 피날레 폭죽은 Canvas 2D와 requestAnimationFrame으로 약 5.5초 동안 8발을 발사합니다. 마지막 3발은 짧은 간격으로 발사합니다. DPR은 최대 2, 동시 입자는 최대 180개이며 외부 의존성은 없습니다. 두 번째 당첨 후 피날레 진입과 `축하 다시 보기`에만 재생합니다. 재생 중 연속 클릭은 무시하고, 종료 후 재생은 새 Canvas/루프로 시작합니다. 편지로 이동하거나 장면을 나가면 Canvas와 이벤트·루프를 정리합니다. 백그라운드에서는 루프를 멈추고 복귀 시 이어 재생합니다.
 
 새 스크롤/입력/폭죽 테스트도 `node --test tests/cinematic.test.cjs`로 실행합니다. 실기기 검증 범위와 한계는 QA.md를 참고하세요.
+
+## 피날레 BGM
+
+직접 사용할 음원을 저장소의 `static/audio/birthday.mp3`에 추가하고 main에 반영하면 됩니다. 음원은 포함되어 있지 않으며 인터넷에서 자동으로 내려받지 않습니다. 기존 `.gitkeep`은 폴더 유지용입니다. 파일을 추가/교체한 뒤 앱을 새로고침해 서버가 파일 존재를 다시 확인하도록 하세요.
+
+Python은 파일 존재와 크기를 확인해 iframe에 사용 가능 여부만 전달합니다. 파일이 없거나 0바이트이면 오디오 요소, 음악 버튼, 재생 요청 없이 무음으로 동작합니다. 파일이 있으면 두 번째 뽑기의 직접적인 클릭/터치에서 단일 audio 요소를 무음으로 준비합니다. 피날레에 들어온 후에만 소리를 켜며 기본 volume은 0.4, loop는 true입니다. 실제 체감 음량은 기기/브라우저 설정에도 영향을 받습니다.
+
+자동 재생이 거절되면 `🎵 음악 재생하기` 버튼이 남고, 해당 버튼의 직접 터치에서 다시 재생합니다. 재생 중에는 `🔇 음악 끄기`로 바뀝니다. 끄면 정지·초기화하고, 다음 재생 또는 축하 다시 보기는 처음부터 시작합니다. 사용자가 음악을 끈 선택은 재열람과 다시 보기에서도 유지합니다. 폭죽 재생 중 연속 다시 보기 입력은 기존 정책대로 무시합니다.
+
+피날레 이탈, 페이지 이동, 백그라운드 전환에서는 정지하고 음소거합니다. 백그라운드에서 돌아오면 버튼을 눌러 재생할 수 있습니다. 별도의 재생 타이머나 AudioContext를 추가하지 않았으며 하나의 HTMLAudioElement와 기본 loop만 사용합니다. 준비·재생 Promise의 이전 응답도 상태/시도 번호로 무효화해 다른 화면에서 소리가 새지 않게 합니다.
+
+모바일 자동 재생은 브라우저 정책에 따라 차단될 수 있습니다. 정책의 근거는 [WebKit의 사용자 제스처 안내](https://webkit.org/blog/6784/new-video-policies-for-ios/)를 참고하세요. 실제 Safari/Chrome 기기에서 최종 선물 음원으로 재생 버튼을 한 번 확인하는 것이 좋습니다. 테스트 결과와 실기기 미검증 범위는 QA.md에 구분했습니다.

@@ -12,7 +12,7 @@ const button=(text,event,secondary=false)=>`<button class="${secondary?'secondar
 function image(key,cls=''){const path=C.assets[key];return path?`<img class="character ${cls}" src="app/static/${esc(path)}" alt="${({usagi_back:'뒤돌아본 우사기',usagi_front:'우사기',white_character_pink:'분홍 배경의 친구',character_trio:'세 친구',animated_line:'움직이는 장식',cheering_character:'응원하는 친구',usagi_hands:'축하하는 우사기',ditto:'메타몽'})[key]||'친구'}">`:`<span class="fallback ${cls}" role="img" aria-label="작은 친구">♡</span>`}
 const machine=()=>`<div class="machine"><div class="machine-top">LUCKY CLUB <span>★</span></div><div class="globe"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="machine-base"><span class="dial">✳</span><span class="slot"></span></div><div class="capsule"></div></div>`;
 function shell(body,theme='survey'){root.className=theme;root.innerHTML=`<div class="app-shell"><header><span>✳ TINY SURVEY</span><span class="edition">VOL. 001</span></header><section class="scene" tabindex="-1">${body}</section><footer>${theme==='finale'?'MADE WITH A WHOLE LOT OF ♡':'취향 수집소 · 아주 주관적인 분석'}</footer></div>`; root.querySelector('.scene').focus({preventScroll:true});root.querySelectorAll('img').forEach(img=>{img.onerror=()=>{const el=document.createElement('span');el.className=img.className+' fallback';el.textContent='♡';el.setAttribute('aria-label',img.alt);img.replaceWith(el)}})}
-function enter(next){const launch=next==='BIRTHDAY_FINALE'&&(state==='WIN'||fireworksRequested);clear();state=next;render();if(launch)startFireworks();}
+function enter(next){if(state==='BIRTHDAY_FINALE')stopBgm();const launch=next==='BIRTHDAY_FINALE'&&(state==='WIN'||fireworksRequested);clear();state=next;render();if(launch)startFireworks();if(next==='BIRTHDAY_FINALE')startBgm();}
 function render(){
 if(state==='INTRO')shell(`<div class="sticker">100%<br>주관적</div><h1>아주 간단한<br><span class="highlight">취향 설문</span></h1><p class="lead">당신의 취향을 분석해<br>특별한 결과를 보여드립니다!</p><div class="survey-art" aria-hidden="true"><span>?</span><span>✳</span><span>!</span></div><div class="note">딱 3문항 · 약 30초 · 정답 없음</div>${button('설문 시작하기 ▶','START')}<p class="fine intro-notice">설문을 완료하면 99% 확률로 소정의 상품이 있는 뽑기 기회를 드립니다!</p>`);
 else if(state.startsWith('SURVEY_Q')){let i=Number(state.slice(-1))-1,q=C.questions[i];shell(`<div class="progress"><span style="width:${(i+1)/3*100}%"></span></div><div class="eyebrow">QUESTION 0${i+1} <span>/ 03</span></div><h2>${esc(q.title)}</h2><p class="muted">고민 말고, 지금 떠오르는 쪽으로!</p><div class="options">${q.options.map((o,j)=>button(`<small>0${j+1}</small> ${esc(o)} <span>↗</span>`,'ANSWER')).join('')}</div><div class="mini-star" aria-hidden="true">✳</div>`)}
@@ -24,7 +24,7 @@ startCinematic()}
 else if(state==='RETRY_READY')shell(`<div class="eyebrow">마음 충전 완료</div>${image('usagi_front','single')}<h2>행운도 다시 충전했어!</h2><p>자, 진짜 마지막 한 번.</p>${button('추가 기회로 뽑으러 가기 ♡','RETRY')}`,'lucky');
 else if(state==='WIN'){shell(`<div class="eyebrow">CONGRATULATIONS</div><div class="win-star">★</div><h2>축하합니다!<br>1등 당첨!</h2><p>당첨 상품을 공개합니다...</p><div class="countdown" aria-live="polite">3</div>`,'lucky');[2,1].forEach((n,i)=>later(()=>root.querySelector('.countdown').textContent=n,C.timing.countdown_ms*(i+1)));later(()=>send('REVEAL'),C.timing.countdown_ms*3)}
 else if(state==='BIRTHDAY_FINALE'){
-shell(`<div class="party" aria-hidden="true">${Array.from({length:22},(_,i)=>`<i style="--x:${(i*47)%100}%;--delay:${i%6*.23}s;--color:${['#f287a7','#b2abf0','#f6ce62','#8ac9b3'][i%4]}"></i>`).join('')}<span class="balloon b1">●</span><span class="balloon b2">●</span></div><div class="eyebrow">A LITTLE SURPRISE, JUST FOR YOU</div><h1>${fmt(C.celebration_title)}</h1><p class="subtitle">${fmt(C.celebration_subtitle)}</p><div class="friends"><div class="friend side">${image('usagi_hands')}</div><div class="friend center">${image('character_trio')}</div><div class="friend side">${image('cheering_character')}</div></div><div class="gift" aria-label="열린 선물 상자"><span>🎁</span> 🎂</div><div class="warm"><p>${fmt(C.celebration_message)}</p>${C.celebration_message_extra?`<p class="warm-extra">${fmt(C.celebration_message_extra)}</p>`:''}</div><details class="friends-more"><summary>축하하러 온 친구들 ♡</summary><div>${image('usagi_back')}${image('white_character_pink')}${image('animated_line')}${C.assets.ditto?image('ditto'):''}</div></details><div class="final-actions">${button('축하 다시 보기','CELEBRATE')}${button('편지 다시 읽기','READ',true)}${button('처음부터 다시 하기','RESET',true)}</div>`,'finale');}
+shell(`<div class="party" aria-hidden="true">${Array.from({length:22},(_,i)=>`<i style="--x:${(i*47)%100}%;--delay:${i%6*.23}s;--color:${['#f287a7','#b2abf0','#f6ce62','#8ac9b3'][i%4]}"></i>`).join('')}<span class="balloon b1">●</span><span class="balloon b2">●</span></div><div class="eyebrow">A LITTLE SURPRISE, JUST FOR YOU</div><h1>${fmt(C.celebration_title)}</h1><p class="subtitle">${fmt(C.celebration_subtitle)}</p><div class="friends"><div class="friend side">${image('usagi_hands')}</div><div class="friend center">${image('character_trio')}</div><div class="friend side">${image('cheering_character')}</div></div><div class="gift" aria-label="열린 선물 상자"><span>🎁</span> 🎂</div><div class="warm"><p>${fmt(C.celebration_message)}</p>${C.celebration_message_extra?`<p class="warm-extra">${fmt(C.celebration_message_extra)}</p>`:''}</div><details class="friends-more"><summary>축하하러 온 친구들 ♡</summary><div>${image('usagi_back')}${image('white_character_pink')}${image('animated_line')}${C.assets.ditto?image('ditto'):''}</div></details><div class="final-actions">${button('축하 다시 보기','CELEBRATE')}${button('편지 다시 읽기','READ',true)}${button('처음부터 다시 하기','RESET',true)}</div>${musicControl()}`,'finale');}
 }
 // The letter is a nested scene controller. All work shares the existing epoch timer guard.
 const cinema = {blackout_ms:700,opening_durations_ms:[2600,3200,2800],pause_before_you_ms:1200,you_ms:1800,envelope_ms:2500,signature_pause_ms:1200,reward_delay_ms:1800,enable_stars:true,enable_envelope:true,...C.cinematic};
@@ -118,6 +118,61 @@ function skipLetter(){
   paragraphIndex=C.letter_lines.length-1;endLetter();
 }
 
+// One media element survives finale re-renders; no request is made for absent audio.
+let bgm=null, bgmPlaying=false, bgmMuted=false, bgmFailed=false, bgmAttempt=0;
+function musicControl(){return C.bgm_available&&!bgmFailed?'<button class="music-toggle secondary" data-event="MUSIC" aria-label="음악 재생하기" aria-pressed="false">🎵 음악 재생하기</button>':''}
+function updateMusicControl(){
+  const control=root.querySelector('.music-toggle');if(!control)return;
+  control.hidden=bgmFailed;
+  control.textContent=bgmPlaying?'🔇 음악 끄기':'🎵 음악 재생하기';
+  control.setAttribute('aria-label',bgmPlaying?'음악 끄기':'음악 재생하기');
+  control.setAttribute('aria-pressed',String(bgmPlaying));
+}
+function getBgm(){
+  if(!C.bgm_available||bgmFailed)return null;
+  if(!bgm){
+    bgm=document.createElement('audio');bgm.className='birthday-bgm';bgm.hidden=true;
+    bgm.preload='none';bgm.loop=true;bgm.volume=.4;bgm.muted=true;
+    bgm.setAttribute('playsinline','');bgm.src='app/static/audio/birthday.mp3';
+    bgm.addEventListener('error',()=>{bgmFailed=true;stopBgm();updateMusicControl()});
+    document.body.append(bgm);
+  }
+  return bgm;
+}
+function stopBgm(){
+  bgmAttempt++;bgmPlaying=false;
+  if(bgm){bgm.muted=true;bgm.pause();try{bgm.currentTime=0}catch{}}
+}
+function prepareBgm(){
+  const audio=getBgm();if(!audio||bgmMuted)return;
+  ++bgmAttempt;audio.muted=true;
+  // Called synchronously from the second DRAW touch, never audibly outside finale.
+  try{Promise.resolve(audio.play()).then(()=>{
+    if(state!=='BIRTHDAY_FINALE'||bgmMuted||document.hidden){audio.muted=true;audio.pause();try{audio.currentTime=0}catch{}}
+  }).catch(()=>{/* The finale button remains the supported fallback. */})}catch{}
+}
+function startBgm(restart=true){
+  if(state!=='BIRTHDAY_FINALE'||document.hidden)return;
+  const audio=getBgm();if(!audio||bgmMuted){updateMusicControl();return}
+  const attempt=++bgmAttempt;bgmPlaying=false;
+  audio.pause();if(restart){try{audio.currentTime=0}catch{}}
+  audio.muted=false;audio.volume=.4;
+  const rejected=()=>{if(attempt===bgmAttempt){bgmPlaying=false;updateMusicControl()}};
+  try{Promise.resolve(audio.play()).then(()=>{
+    if(attempt!==bgmAttempt){if(state!=='BIRTHDAY_FINALE'||bgmMuted||document.hidden){audio.muted=true;audio.pause()}return}
+    if(state!=='BIRTHDAY_FINALE'||bgmMuted||document.hidden){stopBgm();return}
+    bgmPlaying=true;updateMusicControl();
+  }).catch(rejected)}catch{rejected()}
+  updateMusicControl();
+}
+function toggleBgm(){
+  if(state!=='BIRTHDAY_FINALE')return;
+  if(bgmPlaying){bgmMuted=true;stopBgm();updateMusicControl()}
+  else{bgmMuted=false;startBgm(false)}
+}
+window.addEventListener('pagehide',()=>{stopBgm();updateMusicControl()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stopBgm();updateMusicControl()}});
+
 // One bounded Canvas loop per celebration. Coordinates stay inside this iframe.
 function startFireworks(){
   stopFireworks();fireworksRequested=false;
@@ -151,7 +206,7 @@ if(event==='RESET'&&state==='BIRTHDAY_FINALE'){replay=false;enter('INTRO');retur
 if(state==='INTRO'&&event==='START')enter('SURVEY_Q1');
 else if(state.startsWith('SURVEY_Q')&&event==='ANSWER'){busy=true;root.querySelectorAll('button').forEach(b=>b.disabled=true);let n=Number(state.slice(-1));later(()=>enter(n<3?'SURVEY_Q'+(n+1):'ANALYZING'),220)}
 else if(state==='ANALYZING'&&event==='ANALYZED')enter('GACHA_FIRST');
-else if(['GACHA_FIRST','GACHA_SECOND'].includes(state)&&event==='DRAW'){busy=true;root.querySelectorAll('button').forEach(b=>b.disabled=true);root.querySelector('.machine').classList.add('drawing');later(()=>enter(state==='GACHA_FIRST'?'LOSE':'WIN'),C.timing.gacha_ms)}
+else if(['GACHA_FIRST','GACHA_SECOND'].includes(state)&&event==='DRAW'){if(state==='GACHA_SECOND')prepareBgm();busy=true;root.querySelectorAll('button').forEach(b=>b.disabled=true);root.querySelector('.machine').classList.add('drawing');later(()=>enter(state==='GACHA_FIRST'?'LOSE':'WIN'),C.timing.gacha_ms)}
 else if(state==='LOSE'&&event==='AD'){replay=false;enter('FAKE_AD_LETTER')}
 else if(state==='LOSE'&&event==='GIVEUP')root.querySelector('#plea').textContent='잠깐! 여기까지 왔는데… 한 번만 더 믿어 줘 🥺';
 else if(state==='FAKE_AD_LETTER'&&event==='SKIP')skipLetter();
@@ -160,9 +215,10 @@ else if(state==='FAKE_AD_LETTER'&&event==='LETTER_DONE')enter(replay?'BIRTHDAY_F
 else if(state==='RETRY_READY'&&event==='RETRY')enter('GACHA_SECOND');
 else if(state==='WIN'&&event==='REVEAL')enter('BIRTHDAY_FINALE');
 else if(state==='BIRTHDAY_FINALE'&&event==='CELEBRATE'){if(fireworksActive)return;fireworksRequested=true;enter('BIRTHDAY_FINALE');}
+else if(state==='BIRTHDAY_FINALE'&&event==='MUSIC')toggleBgm();
 else if(state==='BIRTHDAY_FINALE'&&event==='READ'){replay=true;enter('FAKE_AD_LETTER')}
 }
-function fail(){clear();root.className='survey';root.innerHTML='<div class="app-shell"><h2>잠깐, 설문지가 엉켰어요.</h2><p>새로고침하면 처음부터 다시 시작할 수 있어요.</p><button onclick="location.reload()">새로고침</button></div>'}
+function fail(){stopBgm();clear();root.className='survey';root.innerHTML='<div class="app-shell"><h2>잠깐, 설문지가 엉켰어요.</h2><p>새로고침하면 처음부터 다시 시작할 수 있어요.</p><button onclick="location.reload()">새로고침</button></div>'}
 root.addEventListener('click',e=>{try{const b=e.target.closest('button[data-event]');if(b){send(b.dataset.event);return}if(isBlankLetterTap(e))tapLetter()}catch(error){console.error(error);fail()}});
 root.addEventListener('keydown',e=>{if(e.target.matches('.cinema-paper')&&['Enter',' '].includes(e.key)){e.preventDefault();tapLetter()}});
 window.addEventListener('error',e=>{if(e.error)fail()});

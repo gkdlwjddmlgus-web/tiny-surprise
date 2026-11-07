@@ -6,6 +6,8 @@ ROOT = Path(__file__).resolve().parent
 st.set_page_config(page_title="Tiny Survey", page_icon="✳", layout="wide", initial_sidebar_state="collapsed")
 try:
     config = json.loads((ROOT / "config/birthday.json").read_text(encoding="utf-8-sig"))
+    audio_file = ROOT / "static/audio/birthday.mp3"
+    config["bgm_available"] = audio_file.is_file() and audio_file.stat().st_size > 0
     css = (ROOT / "frontend/style.css").read_text(encoding="utf-8-sig")
     js = (ROOT / "frontend/app.js").read_text(encoding="utf-8-sig")
     payload = json.dumps(config, ensure_ascii=False).replace("<", "\\u003c")
