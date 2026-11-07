@@ -93,3 +93,5 @@ html,body{overflow-x:hidden} [data-testid="stHeader"]{display:none} .stMainBlock
 @media(max-height:740px){#tiny-surprise .letter-paragraph{font-size:15px}#tiny-surprise.finale .warm p{font-size:11px}}
 @media(prefers-reduced-motion:reduce){#tiny-surprise .fireworks{display:none}}
 #tiny-surprise.cinematic[data-act="letter"] .cinema-stage{justify-content:flex-start;padding-top:30px;gap:14px}
+
+#tiny-surprise .intro-notice{font-size:12px;line-height:1.8;opacity:.85;overflow-wrap:anywhere}
