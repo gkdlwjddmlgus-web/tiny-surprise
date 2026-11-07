@@ -4,7 +4,7 @@
 
 ## 실행
 
-Python 3.12를 권장합니다. 이 폴더에서 실행하세요.
+배포 대상은 Python 3.11입니다. Python 3.11.18 + Streamlit 1.63.0에서 실제 설치와 로컬 실행을 확인했습니다. 이 폴더에서 실행하세요.
 
 ```sh
 python -m pip install -r requirements.txt
@@ -15,11 +15,14 @@ streamlit run app.py
 
 ## Streamlit Community Cloud
 
-1. 이 폴더의 내용(`app.py`, `.streamlit`, `frontend`, `config`, `static`, `requirements.txt`)을 GitHub `tiny-surprise` 저장소 루트에 올립니다.
-2. Streamlit Community Cloud에서 저장소와 브랜치를 선택하고 Main file path를 `app.py`로 지정합니다.
-3. Python 3.12로 배포합니다. 별도 비밀키나 API는 필요 없습니다.
+1. https://share.streamlit.io/ 에 로그인하고 필요한 약관 동의 및 GitHub 접근 승인을 직접 완료합니다. 저장소는 현재 비공개이므로 해당 저장소 접근을 허용해야 합니다. 저장소 공개 범위를 바꿀 필요는 없습니다.
+2. `Create app`에서 기존 GitHub 저장소 배포를 선택합니다.
+3. Repository: `gkdlwjddmlgus-web/tiny-surprise`, Branch: `main`, Main file path: `app.py`를 입력합니다.
+4. App URL 후보에 `tiny-surprise`를 입력합니다. 사용 가능 여부는 배포 화면에서 확인해야 하며 실제 URL은 아직 확보되지 않았습니다.
+5. `Advanced settings`에서 Python `3.11`을 선택하고 배포합니다. 앱 코드에는 별도 비밀키나 API가 필요 없습니다.
+6. 배포 로그에서 의존성 설치와 서버 시작을 확인한 뒤 생성된 URL에서 아래 수동 확인 흐름을 실행합니다.
 
-이 작업에서 GitHub 업로드 및 실제 Cloud 배포는 수행하지 않았습니다.
+현재 GitHub에는 기존 코드의 `main`이 생성되어 있습니다. 작업은 `codex/deployment-qa`에서 진행하고 PR로 변경 내용을 검토합니다. Cloud 접속 시 로그인 화면이 표시되어 실제 Cloud 배포 및 배포 URL 검증은 수행하지 못했습니다. 계정 로그인과 GitHub OAuth를 우회하지 않았습니다.
 
 ## 설정
 
