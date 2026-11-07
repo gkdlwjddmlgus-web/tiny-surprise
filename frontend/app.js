@@ -124,16 +124,17 @@ function musicControl(){return C.bgm_available&&!bgmFailed?'<button class="music
 function updateMusicControl(){
   const control=root.querySelector('.music-toggle');if(!control)return;
   control.hidden=bgmFailed;
-  control.textContent=bgmPlaying?'🔇 음악 끄기':'🎵 음악 재생하기';
-  control.setAttribute('aria-label',bgmPlaying?'음악 끄기':'음악 재생하기');
+  control.textContent=bgmPlaying?'⏸ 음악 일시정지':'🎵 음악 재생하기';
+  control.setAttribute('aria-label',bgmPlaying?'음악 일시정지':'음악 재생하기');
   control.setAttribute('aria-pressed',String(bgmPlaying));
 }
 function getBgm(){
   if(!C.bgm_available||bgmFailed)return null;
   if(!bgm){
     bgm=document.createElement('audio');bgm.className='birthday-bgm';bgm.hidden=true;
-    bgm.preload='none';bgm.loop=true;bgm.volume=.4;bgm.muted=true;
-    bgm.setAttribute('playsinline','');bgm.src='app/static/audio/birthday.mp3';
+    bgm.preload='none';bgm.loop=false;bgm.volume=.4;bgm.muted=true;
+    bgm.setAttribute('playsinline','');bgm.src='app/static/audio/birthday.mp3'+(C.bgm_version?'?v='+encodeURIComponent(C.bgm_version):'');
+    bgm.addEventListener('ended',()=>{bgmAttempt++;bgmPlaying=false;bgm.muted=true;bgm.pause();updateMusicControl()});
     bgm.addEventListener('error',()=>{bgmFailed=true;stopBgm();updateMusicControl()});
     document.body.append(bgm);
   }
@@ -144,7 +145,7 @@ function stopBgm(){
   if(bgm){bgm.muted=true;bgm.pause();try{bgm.currentTime=0}catch{}}
 }
 function prepareBgm(){
-  const audio=getBgm();if(!audio||bgmMuted)return;
+  const audio=getBgm();if(!audio)return;bgmMuted=false;
   ++bgmAttempt;audio.muted=true;
   // Called synchronously from the second DRAW touch, never audibly outside finale.
   try{Promise.resolve(audio.play()).then(()=>{
@@ -153,9 +154,10 @@ function prepareBgm(){
 }
 function startBgm(restart=true){
   if(state!=='BIRTHDAY_FINALE'||document.hidden)return;
+  if(restart)bgmMuted=false;
   const audio=getBgm();if(!audio||bgmMuted){updateMusicControl();return}
   const attempt=++bgmAttempt;bgmPlaying=false;
-  audio.pause();if(restart){try{audio.currentTime=0}catch{}}
+  audio.pause();if(restart||audio.ended){try{audio.currentTime=0}catch{}}
   audio.muted=false;audio.volume=.4;
   const rejected=()=>{if(attempt===bgmAttempt){bgmPlaying=false;updateMusicControl()}};
   try{Promise.resolve(audio.play()).then(()=>{
@@ -167,7 +169,7 @@ function startBgm(restart=true){
 }
 function toggleBgm(){
   if(state!=='BIRTHDAY_FINALE')return;
-  if(bgmPlaying){bgmMuted=true;stopBgm();updateMusicControl()}
+  if(bgmPlaying){bgmMuted=true;bgmAttempt++;bgmPlaying=false;bgm.muted=true;bgm.pause();updateMusicControl()}
   else{bgmMuted=false;startBgm(false)}
 }
 window.addEventListener('pagehide',()=>{stopBgm();updateMusicControl()});
