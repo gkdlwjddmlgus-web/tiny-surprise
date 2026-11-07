@@ -19,16 +19,81 @@ else if(state==='ANALYZING'){shell(`<div class="spinner">✳</div><h2>취향을 
 else if(state==='GACHA_FIRST'||state==='GACHA_SECOND'){let second=state==='GACHA_SECOND';shell(`<div class="eyebrow">${second?'ONE MORE CHANCE':'당신의 취향 분석 완료'}</div><h2>${second?'이번엔 느낌이 좋은데?':'행운을 뽑아 보세요'}</h2><p class="muted">${second?'마음을 담아 한 번 더!':'당첨 확률 99.9% · 믿거나 말거나'}</p>${machine()}${button(second?'한 번 더 뽑기!':'결과 뽑기!','DRAW')}<p class="fine">${second?'이번 기회는 특별하니까 ♡':'결과는 열어 봐야 알죠.'}</p>`,second?'lucky':'survey')}
 else if(state==='LOSE')shell(`<div class="eyebrow">이럴 수가...</div><div class="result-mark">꽝<span>…!</span></div><h2>0.1%의 주인공 등장</h2><p>당첨 확률이 99.9%였는데<br>이걸 실패한다고?</p><div class="ticket">그래도 특별히 추가 기회를 드립니다.</div>${button('광고 보고 재도전하기','AD')}${button('포기하기','GIVEUP',true)}<p id="plea" class="fine" aria-live="polite">조금만 더 하면 좋은 일이 생길지도?</p>`);
 else if(state==='FAKE_AD_LETTER'){
-shell(`<div class="ad-label">광고 재생 중... <span>마음 제공 · 패러디</span></div><div class="progress loading"><span></span></div><div class="letter-stage"><div class="envelope">✉</div><p>잠시 후 마음이 도착합니다.</p></div><button class="skip secondary" data-event="SKIP">편지 바로 펼치기</button>`,'letter');later(showLetter,C.timing.ad_ms)}
+startCinematic()}
 else if(state==='RETRY_READY')shell(`<div class="eyebrow">마음 충전 완료</div>${image('usagi_front','single')}<h2>행운도 다시 충전했어!</h2><p>자, 진짜 마지막 한 번.</p>${button('추가 기회로 뽑으러 가기 ♡','RETRY')}`,'lucky');
 else if(state==='WIN'){shell(`<div class="eyebrow">CONGRATULATIONS</div><div class="win-star">★</div><h2>축하합니다!<br>1등 당첨!</h2><p>당첨 상품을 공개합니다...</p><div class="countdown" aria-live="polite">3</div>`,'lucky');[2,1].forEach((n,i)=>later(()=>root.querySelector('.countdown').textContent=n,C.timing.countdown_ms*(i+1)));later(()=>send('REVEAL'),C.timing.countdown_ms*3)}
 else if(state==='BIRTHDAY_FINALE'){
 shell(`<div class="party" aria-hidden="true">${Array.from({length:22},(_,i)=>`<i style="--x:${(i*47)%100}%;--delay:${i%6*.23}s;--color:${['#f287a7','#b2abf0','#f6ce62','#8ac9b3'][i%4]}"></i>`).join('')}<span class="balloon b1">●</span><span class="balloon b2">●</span></div><div class="eyebrow">A LITTLE SURPRISE, JUST FOR YOU</div><h1>${fmt(C.celebration_title)}</h1><p class="subtitle">${fmt(C.celebration_subtitle)}</p><div class="friends"><div class="friend side">${image('usagi_hands')}</div><div class="friend center">${image('character_trio')}</div><div class="friend side">${image('cheering_character')}</div></div><div class="gift" aria-label="열린 선물 상자"><span>🎁</span> 🎂</div><p class="warm">${fmt(C.celebration_message)}</p><details class="friends-more"><summary>축하하러 온 친구들 ♡</summary><div>${image('usagi_back')}${image('white_character_pink')}${image('animated_line')}${C.assets.ditto?image('ditto'):''}</div></details><div class="final-actions">${button('축하 다시 보기','CELEBRATE')}${button('편지 다시 읽기','READ',true)}${button('처음부터 다시 하기','RESET',true)}</div>`,'finale');}
 }
-function showLetter(){if(state!=='FAKE_AD_LETTER')return;clear();root.classList.add('dimmed');root.querySelector('.letter-stage').innerHTML=`<div class="paper" role="region" aria-label="너에게 쓰는 편지" tabindex="0"><div class="letter-heading">Dear. ${esc(C.nickname)} ♡</div><div id="lines"></div><div id="letter-end"></div></div><p class="tap-hint">편지 터치: 지금 문장 바로 읽기</p>`;root.querySelector('.skip').textContent='편지 전체 보기';typeLine(0)}
-function typeLine(index){if(index>=C.letter_lines.length){endLetter();return}let p=document.createElement('p');p.className='letter-line';root.querySelector('#lines').append(p);const chars=Array.from(C.letter_lines[index]);let n=0,done=false;const complete=()=>{if(done)return;done=true;p.textContent=chars.join('');finishLine=null;later(()=>typeLine(index+1),C.letter_pause_ms)};finishLine=complete;function tick(){if(done)return;p.textContent=chars.slice(0,++n).join('');p.scrollIntoView({block:'nearest'});if(n>=chars.length)complete();else later(tick,reduced?0:C.letter_char_ms)}tick()}
-function endLetter(){finishLine=null;root.querySelector('#letter-end').innerHTML=button(replay?'피날레로 돌아가기 ♡':'추가 기회 받기 ♡','LETTER_DONE');root.querySelector('.skip').hidden=true;}
-function skipLetter(){if(!root.querySelector('#lines'))showLetter();clear();root.querySelector('#lines').innerHTML=C.letter_lines.map(s=>`<p class="letter-line">${esc(s)}</p>`).join('');endLetter()}
+// The letter is a nested scene controller. All work shares the existing epoch timer guard.
+const cinema = {blackout_ms:700,opening_durations_ms:[2600,3200,2800],pause_before_you_ms:1200,you_ms:1800,envelope_ms:2500,signature_pause_ms:1200,reward_delay_ms:1800,enable_stars:true,enable_envelope:true,...C.cinematic};
+let letterPhase='idle', paragraphIndex=0, typing=false, charTimer=null, advanceTimer=null, lastTap=-Infinity, paragraphStarted=-Infinity;
+const cancel=id=>{if(id!==null){clearTimeout(id);timers.delete(id)}};
+function stars(){return cinema.enable_stars?`<div class="cosmos-stars" aria-hidden="true">${Array.from({length:24},(_,i)=>`<i style="--sx:${(i*37+11)%100}%;--sy:${(i*53+7)%100}%;--twinkle:${3+i%4}s;--lag:${i%7*.25}s"></i>`).join('')}</div>`:''}
+function startCinematic(){
+  letterPhase='opening';lastTap=-Infinity;
+  shell(`<div class="cinema-backdrop" aria-hidden="true"></div>${stars()}<div class="birth-light" aria-hidden="true"></div><div class="cinema-label">광고 재생 중 <span>마음 제공 · 패러디</span></div><div class="cinema-stage"><p class="opening-copy" aria-live="polite"></p></div><button class="skip secondary" data-event="SKIP">오프닝 건너뛰기</button>`,'cinematic');
+  if(replay){openEnvelope();return}
+  root.dataset.act='blackout';later(()=>openingLine(0),cinema.blackout_ms);
+}
+function openingLine(i){
+  const lines=cinema.opening_lines||['태초에 이 세상에 아무것도 없었다...','빛이 있으라.....','그 말의 끝에 한 존재가 태어났다....','바로','너!'];
+  root.dataset.act=['dark','light','existence','pause','you'][i];
+  const p=root.querySelector('.opening-copy');p.className='opening-copy'+(i===4?' you':'');p.textContent=lines[i]||'';
+  // Replacing the node restarts only its CSS entrance; stars remain mounted.
+  const fresh=p.cloneNode(true);p.replaceWith(fresh);
+  if(i===3){later(()=>openingLine(4),800+cinema.pause_before_you_ms);return}
+  const duration=i===4?cinema.you_ms:cinema.opening_durations_ms[i];
+  later(()=>fresh.classList.add('leaving'),Math.max(0,duration-500));
+  later(()=>i===4?openEnvelope():openingLine(i+1),duration);
+}
+function openEnvelope(){
+  clear();letterPhase='envelope';root.dataset.act='envelope';
+  const stage=root.querySelector('.cinema-stage');
+  root.querySelector('.skip').textContent='편지 바로 읽기';
+  if(!cinema.enable_envelope){showLetter();return}
+  stage.innerHTML=`<div class="letter-envelope" role="img" aria-label="하트 봉투가 열리며 편지가 펼쳐집니다" style="--envelope-time:${cinema.envelope_ms}ms"><div class="envelope-back"></div><div class="envelope-sheet"><span>To. ${esc(C.nickname)} ♡</span></div><div class="envelope-front"></div><div class="envelope-flap"></div><span class="heart-seal">♡</span></div>`;
+  later(showLetter,cinema.envelope_ms);
+}
+function showLetter(){
+  if(state!=='FAKE_AD_LETTER')return;
+  clear();letterPhase='body';paragraphIndex=0;lastTap=-Infinity;root.dataset.act='letter';
+  root.querySelector('.cinema-stage').innerHTML=`<div class="cinema-paper" role="region" aria-label="너에게 쓰는 편지" tabindex="0"><div class="letter-heading">Dear. ${esc(C.nickname)} ♡</div><div class="paragraph-counter" aria-live="off"></div><div class="paragraph-window"><p class="current-paragraph"></p></div><div class="signature-spark" aria-hidden="true">✧ ♡ ✧</div></div><p class="cinema-hint">화면을 터치하면 다음 문장으로 넘어가요 ♡</p><div class="letter-reward" aria-live="polite"></div>`;
+  const skip=root.querySelector('.skip');skip.hidden=false;skip.textContent='편지 전체 보기';typeParagraph(0);
+}
+function typeParagraph(index){
+  cancel(charTimer);cancel(advanceTimer);charTimer=advanceTimer=null;
+  if(index>=C.letter_lines.length){endLetter();return}
+  paragraphIndex=index;paragraphStarted=performance.now();typing=true;letterPhase='body';
+  const old=root.querySelector('.current-paragraph');const p=document.createElement('p');p.className='current-paragraph'+(index===C.letter_lines.length-1?' signature':'');old.replaceWith(p);
+  root.querySelector('.paragraph-counter').textContent=`${String(index+1).padStart(2,'0')} / ${String(C.letter_lines.length).padStart(2,'0')}`;
+  const paper=root.querySelector('.cinema-paper');paper.classList.toggle('signed',index===C.letter_lines.length-1);
+  const chars=Array.from(C.letter_lines[index]);let n=0;
+  finishLine=()=>{if(!typing)return;cancel(charTimer);typing=false;p.textContent=chars.join('');finishLine=null;const signature=index===C.letter_lines.length-1;const wait=signature?cinema.reward_delay_ms:(index===C.letter_lines.length-2?cinema.signature_pause_ms:C.letter_pause_ms);advanceTimer=later(()=>typeParagraph(index+1),wait)};
+  function tick(){if(!typing)return;p.textContent=chars.slice(0,++n).join('');if(n>=chars.length)finishLine();else charTimer=later(tick,reduced?0:C.letter_char_ms)}tick();
+}
+function tapLetter(){
+  if(state!=='FAKE_AD_LETTER'||letterPhase!=='body')return;
+  const now=performance.now();if(now-lastTap<450||now-paragraphStarted<450)return;lastTap=now;
+  if(typing&&finishLine){finishLine();return}
+  // Preserve the deliberate pause before the signature, including manual playback.
+  if(paragraphIndex===C.letter_lines.length-2||paragraphIndex===C.letter_lines.length-1)return;
+  typeParagraph(paragraphIndex+1);
+}
+function endLetter(){
+  clear();letterPhase='reward';typing=false;
+  const reward=root.querySelector('.letter-reward');reward.innerHTML=`${replay?'':`<p class="reward-label">광고 시청 완료!<br><strong>추가 뽑기 기회 +1 ♡</strong></p>`}${button(replay?'피날레로 돌아가기 ♡':'선물 받으러 가기 🎁','LETTER_DONE')}`;
+  root.querySelector('.skip').hidden=true;root.querySelector('.cinema-hint').hidden=true;
+}
+function skipLetter(){
+  if(letterPhase==='opening'||letterPhase==='envelope'){showLetter();return}
+  if(letterPhase!=='body')return;
+  clear();typing=false;letterPhase='archive';
+  const paper=root.querySelector('.cinema-paper');paper.classList.add('archive','signed');
+  paper.innerHTML=`<div class="letter-heading">Dear. ${esc(C.nickname)} ♡</div>${C.letter_lines.map((line,i)=>`<p class="archive-paragraph${i===C.letter_lines.length-1?' signature':''}">${esc(line)}</p>`).join('')}`;
+  endLetter();
+}
+
 function send(event){
 if(busy)return;
 if(event==='RESET'&&state==='BIRTHDAY_FINALE'){replay=false;enter('INTRO');return}
@@ -39,13 +104,14 @@ else if(['GACHA_FIRST','GACHA_SECOND'].includes(state)&&event==='DRAW'){busy=tru
 else if(state==='LOSE'&&event==='AD'){replay=false;enter('FAKE_AD_LETTER')}
 else if(state==='LOSE'&&event==='GIVEUP')root.querySelector('#plea').textContent='잠깐! 여기까지 왔는데… 한 번만 더 믿어 줘 🥺';
 else if(state==='FAKE_AD_LETTER'&&event==='SKIP')skipLetter();
-else if(state==='FAKE_AD_LETTER'&&event==='LETTER_DONE')enter(replay?'BIRTHDAY_FINALE':'RETRY_READY');
+else if(state==='FAKE_AD_LETTER'&&event==='LETTER_DONE')enter(replay?'BIRTHDAY_FINALE':'GACHA_SECOND');
 else if(state==='RETRY_READY'&&event==='RETRY')enter('GACHA_SECOND');
 else if(state==='WIN'&&event==='REVEAL')enter('BIRTHDAY_FINALE');
 else if(state==='BIRTHDAY_FINALE'&&event==='CELEBRATE')enter('BIRTHDAY_FINALE');
 else if(state==='BIRTHDAY_FINALE'&&event==='READ'){replay=true;enter('FAKE_AD_LETTER')}
 }
 function fail(){clear();root.className='survey';root.innerHTML='<div class="app-shell"><h2>잠깐, 설문지가 엉켰어요.</h2><p>새로고침하면 처음부터 다시 시작할 수 있어요.</p><button onclick="location.reload()">새로고침</button></div>'}
-root.addEventListener('click',e=>{try{const b=e.target.closest('button[data-event]');if(b){send(b.dataset.event);return}if(e.target.closest('.paper')&&finishLine)finishLine()}catch(error){console.error(error);fail()}});
+root.addEventListener('click',e=>{try{const b=e.target.closest('button[data-event]');if(b){send(b.dataset.event);return}if(e.target.closest('.cinema-paper'))tapLetter()}catch(error){console.error(error);fail()}});
+root.addEventListener('keydown',e=>{if(e.target.closest('.cinema-paper')&&['Enter',' '].includes(e.key)){e.preventDefault();tapLetter()}});
 window.addEventListener('error',e=>{if(e.error)fail()});
 try{render()}catch(error){console.error(error);fail()}

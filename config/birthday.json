@@ -1,15 +1,84 @@
 {
-  "friend_name": "규령", "nickname": "타몽",
+  "friend_name": "규령",
+  "nickname": "타몽",
   "questions": [
-    {"title":"지금 기분은 어때?", "options":["좋아! ㅎㅎ", "그냥 그래~"]},
-    {"title":"지금 당장 받고 싶은 건?", "options":["맛있는 거!", "아무것도 안 하기"]},
-    {"title":"누가 널 엄청 아끼고 있다면?", "options":["당연하지 ㅋ", "에이 설마~"]}
+    {
+      "title": "지금 기분은 어때?",
+      "options": [
+        "좋아! ㅎㅎ",
+        "그냥 그래~"
+      ]
+    },
+    {
+      "title": "지금 당장 받고 싶은 건?",
+      "options": [
+        "맛있는 거!",
+        "아무것도 안 하기"
+      ]
+    },
+    {
+      "title": "누가 널 엄청 아끼고 있다면?",
+      "options": [
+        "당연하지 ㅋ",
+        "에이 설마~"
+      ]
+    }
   ],
-  "letter_lines": ["규령아, 사실 이건 광고가 아니야.", "잠깐만 네 시간을 빌려서 하고 싶은 말이 있었어.", "너랑 별것 아닌 얘기로 웃는 순간들이 참 좋아.", "잘하고 있는 날도, 조금 지치는 날도 늘 네 편이 있다는 걸 기억해 줘.", "오늘은 네가 가장 많이 웃는 하루였으면 좋겠어.", "타몽에게 좋은 일들이 잔뜩 찾아오기를. 마음을 담아서 ♡"],
-  "letter_char_ms": 55, "letter_pause_ms": 850,
-  "timing": {"analyzing_ms":2600,"gacha_ms":2400,"ad_ms":1100,"countdown_ms":1000},
-  "assets": {"usagi_back":"assets/usagi_back.gif","usagi_front":"assets/usagi_front.gif","white_character_pink":"assets/white_character_pink.gif","character_trio":"assets/character_trio.gif","animated_line":"assets/animated_line.gif","cheering_character":"assets/cheering_character.gif","usagi_hands":"assets/usagi_hands.gif","ditto":null},
-  "celebration_title":"{name}아, 생일 축하해! 🎂",
-  "celebration_subtitle":"오늘의 주인공은 바로 너야, {nickname}!",
-  "celebration_message":"네가 좋아하는 것들과 다정한 순간들로 가득한 한 해가 되길. 오늘도, 앞으로도 많이 아껴 ♡"
+  "letter_lines": [
+    "규령아 사실 이건 광고가 아니야",
+    "잠깐만 네 시간을 빌려서 하고 싶은 말이 있어.",
+    "너랑 별 것 아닌 이야기들로 웃음으로 채워나간 순간들이 참 좋았어.",
+    "앞으로도 내 즐거운 순간들에, 또 너의 즐거운 순간들에",
+    "항상 좋은 인연으로 곁에서 축하하고! 축하받고! 싶어!!",
+    "너가 어떤 모습이든 소중한 존재니까",
+    "잘하고 있는 날도, 조금 지치는 날도 늘 네 편이 있다는 걸 기억해줘.",
+    "오늘 하루는 세상의 모든 행복이 너에게 모였으면 해",
+    "타몽에게 좋은 일들이 오늘뿐만이 아니라",
+    "앞으로도 귀찮을 정도로 잔~뜩! 찾아오기를!",
+    "감사한 마음을 담아서",
+    "- 나뇽이가 -"
+  ],
+  "letter_char_ms": 42,
+  "letter_pause_ms": 1000,
+  "timing": {
+    "analyzing_ms": 2600,
+    "gacha_ms": 2400,
+    "ad_ms": 1100,
+    "countdown_ms": 1000
+  },
+  "assets": {
+    "usagi_back": "assets/usagi_back.gif",
+    "usagi_front": "assets/usagi_front.gif",
+    "white_character_pink": "assets/white_character_pink.gif",
+    "character_trio": "assets/character_trio.gif",
+    "animated_line": "assets/animated_line.gif",
+    "cheering_character": "assets/cheering_character.gif",
+    "usagi_hands": "assets/usagi_hands.gif",
+    "ditto": null
+  },
+  "celebration_title": "{name}아, 생일 축하해! 🎂",
+  "celebration_subtitle": "오늘의 주인공은 바로 너야, {nickname}!",
+  "celebration_message": "네가 좋아하는 것들과 다정한 순간들로 가득한 한 해가 되길. 오늘도, 앞으로도 많이 아껴 ♡",
+  "cinematic": {
+    "opening_lines": [
+      "태초에 이 세상에 아무것도 없었다...",
+      "빛이 있으라.....",
+      "그 말의 끝에 한 존재가 태어났다....",
+      "바로",
+      "너!"
+    ],
+    "blackout_ms": 700,
+    "opening_durations_ms": [
+      2600,
+      3200,
+      2800
+    ],
+    "pause_before_you_ms": 1200,
+    "you_ms": 1800,
+    "envelope_ms": 2500,
+    "signature_pause_ms": 1200,
+    "reward_delay_ms": 1800,
+    "enable_stars": true,
+    "enable_envelope": true
+  }
 }
