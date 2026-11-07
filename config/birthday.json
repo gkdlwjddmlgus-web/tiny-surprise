@@ -58,7 +58,7 @@
   },
   "celebration_title": "{name}아, 생일 축하해! 🎂",
   "celebration_subtitle": "오늘의 주인공은 바로 너야, {nickname}!",
-  "celebration_message": "네가 좋아하는 것들과 다정한 순간들로 가득한 한 해가 되길. 오늘도, 앞으로도 많이 아껴 ♡",
+  "celebration_message": "네가 좋아하는 것들과 다정한 순간들로 가득한 한 해가 되길.",
   "cinematic": {
     "opening_lines": [
       "태초에 이 세상에 아무것도 없었다...",
@@ -80,5 +80,6 @@
     "reward_delay_ms": 1800,
     "enable_stars": true,
     "enable_envelope": true
-  }
+  },
+  "celebration_message_extra": "아니! 내년도, 내후년도, 평생!!! 가득해라! 어떻게든 되어랏!!"
 }

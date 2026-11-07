@@ -44,7 +44,7 @@ html,body{overflow-x:hidden} [data-testid="stHeader"]{display:none} .stMainBlock
 #tiny-surprise .envelope-sheet{position:absolute;left:8%;bottom:8%;width:84%;height:85%;background:linear-gradient(110deg,#fff5df,#ead9c2);border-radius:4px;display:grid;place-content:center;color:#9b7470;font-family:Batang,serif;font-size:16px;z-index:1;animation:sheet-emerge var(--envelope-time) both;transform-origin:bottom center}
 #tiny-surprise .envelope-front{position:absolute;inset:0;border-radius:5px;background:#f2d8cc;clip-path:polygon(0 0,50% 52%,100% 0,100% 100%,0 100%);z-index:3}
 #tiny-surprise .envelope-flap{position:absolute;inset:0;background:#f9e5d6;clip-path:polygon(0 0,100% 0,50% 55%);transform-origin:top;z-index:4;animation:flap-open var(--envelope-time) both;backface-visibility:hidden}
-#tiny-surprise .heart-seal{position:absolute;top:38%;left:45%;font-size:25px;color:#b36c7d;z-index:5;animation:seal-fade var(--envelope-time) both}
+
 #tiny-surprise .cinema-paper{width:100%;max-height:calc(100dvh - 255px - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-height:290px;padding:28px 24px;background:repeating-linear-gradient(0deg,#f5e9d4,#f5e9d4 31px,#eee0c9 32px);color:#55433d;border-radius:5px;box-shadow:0 24px 65px #0005;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;outline:none;animation:letter-unfold .8s both;transition:box-shadow 1s;cursor:pointer;touch-action:manipulation}
 #tiny-surprise .cinema-paper:focus-visible{outline:2px solid #d8bda2;outline-offset:5px}
 #tiny-surprise .cinema-paper .letter-heading{font-size:22px;margin-bottom:16px}
@@ -73,4 +73,23 @@ html,body{overflow-x:hidden} [data-testid="stHeader"]{display:none} .stMainBlock
 @keyframes paragraph-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes signature-glow{50%{opacity:.4;transform:translateY(-3px)}to{opacity:1;transform:none}}
 @media(max-height:700px){#tiny-surprise .cinema-paper{min-height:230px;padding:20px}#tiny-surprise .paragraph-window{min-height:100px}#tiny-surprise .current-paragraph{font-size:15px}#tiny-surprise .cinema-stage{gap:10px}}
-@media(prefers-reduced-motion:reduce){#tiny-surprise.cinematic *,#tiny-surprise.cinematic *:before,#tiny-surprise.cinematic *:after{animation:none!important;transition:none!important}#tiny-surprise .cosmos-stars i:nth-child(n+9){display:none}#tiny-surprise .envelope-flap{transform:rotateX(180deg)}#tiny-surprise .heart-seal{display:none}#tiny-surprise .envelope-sheet{transform:translateY(-55%)}}
+@media(prefers-reduced-motion:reduce){#tiny-surprise.cinematic *,#tiny-surprise.cinematic *:before,#tiny-surprise.cinematic *:after{animation:none!important;transition:none!important}#tiny-surprise .cosmos-stars i:nth-child(n+9){display:none}#tiny-surprise .envelope-flap{transform:rotateX(180deg)}#tiny-surprise .envelope-sheet{transform:translateY(-55%)}}
+
+/* Accumulating letter: only the paper scrolls, with controls outside the gesture area. */
+#tiny-surprise .cinema-paper{height:min(65dvh,600px);min-height:0;max-height:calc(100dvh - 180px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;touch-action:pan-y;cursor:default;overflow-anchor:none}
+#tiny-surprise .paragraph-window{display:block;min-height:130px}
+#tiny-surprise .letter-paragraph{font-family:Batang,"AppleMyungjo",serif;font-size:17px;line-height:2;margin:0 0 26px;width:100%;word-break:keep-all;overflow-wrap:anywhere;white-space:pre-wrap;animation:paragraph-in .45s backwards}
+#tiny-surprise .letter-paragraph.signature{font-size:15px;text-align:right;color:#9b6673;margin-top:30px}
+#tiny-surprise .cinema-paper .letter-reward{margin-top:24px;padding-bottom:6px}
+#tiny-surprise .cinema-paper .reward-label{color:#796275}
+#tiny-surprise .cinema-paper .reward-label strong{color:#80576a}
+#tiny-surprise .letter-next{flex:none;max-width:260px;min-height:44px;margin:0;padding:10px 14px;font-size:12px;color:#e9d9e8!important;border-color:#76647c!important}
+#tiny-surprise .signature-spark{letter-spacing:0}
+/* Preserve existing finale rows and add a second, independently editable sentence. */
+#tiny-surprise.finale .warm{margin:8px 5px 12px}
+#tiny-surprise.finale .warm p{font-size:12px;line-height:1.8;text-align:center;margin:0}
+#tiny-surprise.finale .warm p.warm-extra{font-size:12px;font-weight:700;color:#8b617c;margin-top:7px;animation:pop .6s .8s backwards}
+#tiny-surprise .fireworks{position:fixed;inset:0;width:100%;height:100%;z-index:5;pointer-events:none;opacity:.85}
+@media(max-height:740px){#tiny-surprise .letter-paragraph{font-size:15px}#tiny-surprise.finale .warm p{font-size:11px}}
+@media(prefers-reduced-motion:reduce){#tiny-surprise .fireworks{display:none}}
+#tiny-surprise.cinematic[data-act="letter"] .cinema-stage{justify-content:flex-start;padding-top:30px;gap:14px}
