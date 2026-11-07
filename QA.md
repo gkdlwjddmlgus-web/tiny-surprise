@@ -150,3 +150,38 @@ Python 3.11.18 + Streamlit 1.63.0. 실제 음원이 없으므로 별도 작업 �
 실제 생일 음악 파일은 아직 없으며 `.gitkeep`만 배포합니다. 따라서 Cloud에서는 새 기능이 있어도 계속 무음이고 재생 버튼도 숨겨집니다. 추후 `static/audio/birthday.mp3`를 main에 추가하면 활성화됩니다.
 
 실제 iOS Safari/Android Chrome, 실제 선물 음원의 디코딩/음질/체감 음량, 기기별 자동 재생 제한은 미실행입니다. 자동 재생 차단 fallback과 volume=0.4 설정은 단위 테스트로 검증했습니다. 실제 시험 음원 재생/음소거/수동 버튼/다시 보기/이탈은 인앱 브라우저에서 확인했습니다. 최종 background 정지는 자동 테스트로 검증했으며 OS 실기기 검증으로 간주하지 않습니다. Cloud 병합 후 실제 확인 결과는 최종 작업 보고를 참조하세요.
+
+## 사용자 최종 MP3 및 1회 재생 검증 (2026-11-08)
+
+기준 main `f01d4cb`에는 사용자가 업로드한 `static/audio/birthday.mp3`가 이미 존재합니다. 이 파일을 그대로 사용하며 음원을 새로 다운로드/생성/변형하지 않았습니다. 다운로드 폴더의 다른 MP3는 사용하지 않았습니다.
+
+- 파일: 3,955,968바이트, 브라우저 길이 123.624초.
+- SHA-256: `5327e9bfcae642870770fad109b83db8bf89f93f5be596f680dcdd807179b5f5`.
+- 재생 URL: `app/static/audio/birthday.mp3?v=5327e9bfcae64287`. 파일 내용이 바뀌면 버전도 바뀌어 이전 음원 캐시와 구분됩니다.
+
+### 자동 테스트 — PASS (23개)
+
+- Node 컨트롤러/가상 미디어 테스트 19개: 기존 설문 이후 흐름/편지/폭죽, 누락/재생 오류, 자동 재생 거절 후 수동 재생, 기본 volume 0.4, 중복 방지, 이탈/백그라운드 정지 유지. 새 정책에 따라 loop=false, 일시정지 위치 보존 및 이어 재생, 다시 보기 시 일시정지 상태에서도 0초부터 시작, ended 후 반복 없이 정지 및 수동 재시작을 검사했습니다.
+- Python 3.11 unittest 4개: 서버 음원 존재 시 내용 해시 생성, 누락/읽기 권한 오류/0바이트에서도 앱 iframe이 정상 구성되고 무음 fallback 유지.
+- 명령: `node --test tests/cinematic.test.cjs`, `python -m unittest discover -s tests -p 'test_*.py'`.
+- JS 문법/Python 3.11 구문/`git diff --check` PASS. GIF 7개 실제 정적 URL 모두 HTTP 200 / 원본 바이트 일치.
+
+### 실제 로컬 브라우저 — PASS
+
+Python 3.11.18 + Streamlit 1.63.0, 실제 사용자 MP3로 검증했습니다.
+
+- 버전 URL: HTTP 200 / audio/mpeg, 응답 바이트가 사용자 파일과 동일.
+- 설문 → 첫 꽝 → 편지 → 두 번째 뽑기 → 피날레 정상. 두 번째 뽑기 터치 때 오디오 1개, muted=true로 준비하고 최종 화면에서만 소리 켜기.
+- 피날레 readyState=4, duration=123.624, paused=false, muted=false. loop 속성은 false이며 HTML loop attribute 없음.
+- 일시정지: 약 25.37초에서 paused=true. 다시 재생 시 약 25.67초부터 이어 재생.
+- 축하 다시 보기: 약 0.20초부터 재생. 피날레 재열람 후 복귀도 약 0.18초부터 시작.
+- **음원 전체 길이를 실제 재생하여 자연 종료 확인:** currentTime=123.624 / duration=123.624 / ended=true / paused=true. 버튼은 음악 재생하기로 바뀌고 자동 반복하지 않음.
+- 종료 후 재생 버튼: 약 0.01초부터 시작, ended=false. 오디오 요소 1개 유지.
+- 편지 화면 이탈: paused=true / muted=true / currentTime=0. 콘솔 error 0건.
+- 360×800, 390×844, 430×932: 가로 넘침 없음, 음악 버튼 최하단 약 725/727/773px. GIF 정상 로딩.
+
+### 제한 / 배포
+
+실제 Android Chrome 및 iOS Safari 실기기는 미실행입니다. 직접 터치 무음 준비, play Promise 차단 fallback, 단일 오디오 재사용 및 수동 재생을 구현했고 인앱 브라우저와 자동 테스트로 검증했습니다. 실제 기기별 자동 재생 정책/체감 음량을 모두 보장하는 것으로 간주하지 않습니다.
+
+사용자 MP3, JSON 설문/편지/문구, GIF, CSS, requirements 및 Streamlit 설정은 변경하지 않았습니다. BGM 제어와 오디오 준비/오류 fallback, 해시 기반 캐시 버전 및 관련 테스트/문서만 변경했습니다. Cloud 반영과 최종 커밋은 최종 작업 보고를 참조하세요.

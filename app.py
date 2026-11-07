@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import hashlib
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parent
@@ -7,7 +8,12 @@ st.set_page_config(page_title="Tiny Survey", page_icon="✳", layout="wide", ini
 try:
     config = json.loads((ROOT / "config/birthday.json").read_text(encoding="utf-8-sig"))
     audio_file = ROOT / "static/audio/birthday.mp3"
-    config["bgm_available"] = audio_file.is_file() and audio_file.stat().st_size > 0
+    try:
+        audio_data = audio_file.read_bytes()
+    except OSError:
+        audio_data = b""
+    config["bgm_available"] = bool(audio_data)
+    config["bgm_version"] = hashlib.sha256(audio_data).hexdigest()[:16] if audio_data else ""
     css = (ROOT / "frontend/style.css").read_text(encoding="utf-8-sig")
     js = (ROOT / "frontend/app.js").read_text(encoding="utf-8-sig")
     payload = json.dumps(config, ensure_ascii=False).replace("<", "\\u003c")
