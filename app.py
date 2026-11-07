@@ -7,13 +7,19 @@ ROOT = Path(__file__).resolve().parent
 st.set_page_config(page_title="Tiny Survey", page_icon="✳", layout="wide", initial_sidebar_state="collapsed")
 try:
     config = json.loads((ROOT / "config/birthday.json").read_text(encoding="utf-8-sig"))
-    audio_file = ROOT / "static/audio/birthday.mp3"
-    try:
-        audio_data = audio_file.read_bytes()
-    except OSError:
-        audio_data = b""
-    config["bgm_available"] = bool(audio_data)
-    config["bgm_version"] = hashlib.sha256(audio_data).hexdigest()[:16] if audio_data else ""
+    audio_tracks = {}
+    for track in ("ad_intro", "letter_bgm", "birthday"):
+        try:
+            audio_data = (ROOT / "static/audio" / f"{track}.mp3").read_bytes()
+        except OSError:
+            audio_data = b""
+        audio_tracks[track] = {
+            "available": bool(audio_data),
+            "version": hashlib.sha256(audio_data).hexdigest()[:16] if audio_data else "",
+        }
+    config["audio_tracks"] = audio_tracks
+    config["bgm_available"] = audio_tracks["birthday"]["available"]
+    config["bgm_version"] = audio_tracks["birthday"]["version"]
     css = (ROOT / "frontend/style.css").read_text(encoding="utf-8-sig")
     js = (ROOT / "frontend/app.js").read_text(encoding="utf-8-sig")
     payload = json.dumps(config, ensure_ascii=False).replace("<", "\\u003c")

@@ -185,3 +185,36 @@ Python 3.11.18 + Streamlit 1.63.0, 실제 사용자 MP3로 검증했습니다.
 실제 Android Chrome 및 iOS Safari 실기기는 미실행입니다. 직접 터치 무음 준비, play Promise 차단 fallback, 단일 오디오 재사용 및 수동 재생을 구현했고 인앱 브라우저와 자동 테스트로 검증했습니다. 실제 기기별 자동 재생 정책/체감 음량을 모두 보장하는 것으로 간주하지 않습니다.
 
 사용자 MP3, JSON 설문/편지/문구, GIF, CSS, requirements 및 Streamlit 설정은 변경하지 않았습니다. BGM 제어와 오디오 준비/오류 fallback, 해시 기반 캐시 버전 및 관련 테스트/문서만 변경했습니다. Cloud 반영과 최종 커밋은 최종 작업 보고를 참조하세요.
+
+## 광고·편지·피날레 오디오 전환 검증 (2026-11-08)
+
+기준 main `51b4465`, 브랜치 `codex/cinematic-audio`. 사용자 birthday.mp3는 변경하지 않았고, ad_intro.mp3 및 letter_bgm.mp3는 아직 제공되지 않아 배포에 포함하지 않습니다.
+
+### 자동 테스트 — PASS (36개)
+
+- Node 30개: 기존 흐름과 BGM 회귀, 광고 클릭 재생, 250ms fade, ‘바로’ 이전 정지와 1.2초 정적, ‘너!’ 시점 편지 전환, 봉투/본문/전체 보기에서 같은 음악 유지, 편지 이탈 fade, 즉시 재뽑기 시 기존 fade 취소, birthday 단독 전환.
+- 늦은 play Promise가 정적을 깨지 못함, 한 곡 오류가 다른 곡을 막지 않음, 전체 음소거의 곡 간 유지, 누락 음원/차단 후 수동 재생, 반복 재진입의 요소·타이머 중복 없음, 백그라운드 복귀 후 수동 재생 활성화, 음소거만으로 종료된 곡이 재시작되지 않음 포함.
+- Python 6개: 각 파일의 독립적인 존재/읽기 오류 처리와 내용 해시. ad_intro만 없거나 읽을 수 없어도 letter/birthday 사용 가능.
+- 명령: `node --test tests/cinematic.test.cjs`, `python -m unittest discover -s tests -p 'test_*.py'`.
+
+### 실제 로컬 브라우저 — PASS
+
+Python 3.11.18 / Streamlit 1.63.0. 사용자에게서 받지 않은 두 곡은 인터넷 음원을 사용하지 않고, 이전에 로컬 생성한 12초 시험 톤을 임시 파일로 넣어 검증했습니다. 검증 후 원본 시험 톤과 바이트 비교하고 두 임시 파일만 삭제했습니다.
+
+- 광고 보기 클릭: ad_intro 소스, paused=false, muted=false, 오디오 1개.
+- ‘바로’가 실제 표시된 순간: paused=true, muted=true, currentTime=0, 음악 버튼 0개.
+- ‘너!’ 표시 순간: 소스가 letter_bgm으로 변경, paused=false, muted=false, 오디오 1개 유지.
+- 봉투/편지 본문 이후에도 letter_bgm 유지. duration 약 12.04초, loop attribute 존재, 본문 후반에도 재생 중으로 반복 확인.
+- 전체 음소거: muted=true이면서 현재 곡은 진행. 소리 켜기: muted=false. 피날레에서 음소거한 뒤 편지 재열람에서도 muted=true 유지.
+- 편지 완료 버튼으로 이동 후 letter_bgm paused=true / muted=true. 두 번째 뽑기에서 같은 요소가 birthday 소스로 무음 준비.
+- 피날레는 birthday 소스만 존재. loop attribute 없음. 자연 종료 후 재생 버튼으로 재시작 정상. 기존 GIF/폭죽 화면 유지.
+- 360/390/430px 앱 width와 scrollWidth 동일. 편지 음악 컨트롤 최하단 약 784/828/916px로 각 viewport 내부.
+- 콘솔 error 0건. GIF 7개 정적 경로 HTTP 200 및 원본 바이트 유지. JS/Python 3.11 문법·diff 검사 PASS.
+
+### 범위와 제한
+
+‘바로 → 너!’ 간격만 이번 요청의 1.2~1.5초에 맞춰 총 1.2초로 조정했습니다. 다른 오프닝 문장/봉투 시간, 문구, 편지 내용, 설문, 뽑기, GIF, 폭죽 코드 및 생일 음원은 유지합니다. 음악 버튼 표시 여부에 따른 화면 중심 이동을 막도록 시네마틱 제어 영역의 높이를 유지합니다.
+
+실제 ad_intro/letter_bgm 최종 음원은 없으므로 음질·실제 곡 길이는 미검증입니다. Android Chrome/iOS Safari 실기기와 기기별 음량 fade 특성은 미검증입니다. volume 기반 fade와 250ms 후 정지, ‘바로’ 직전/진입 시 pause+muted 강제 처리를 구현했습니다. 정확한 fade 수치는 가상 시간으로 검증하고 실제 브라우저에서는 정지·음소거 상태를 확인했습니다. 물리 기기의 출력 음량을 측정한 것은 아닙니다.
+
+배포 시 추가 두 파일이 없는 구간은 무음이어야 합니다. 최종 main 커밋과 Cloud 반영 결과는 작업 완료 보고를 참조하세요.

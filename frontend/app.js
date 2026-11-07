@@ -12,7 +12,13 @@ const button=(text,event,secondary=false)=>`<button class="${secondary?'secondar
 function image(key,cls=''){const path=C.assets[key];return path?`<img class="character ${cls}" src="app/static/${esc(path)}" alt="${({usagi_back:'뒤돌아본 우사기',usagi_front:'우사기',white_character_pink:'분홍 배경의 친구',character_trio:'세 친구',animated_line:'움직이는 장식',cheering_character:'응원하는 친구',usagi_hands:'축하하는 우사기',ditto:'메타몽'})[key]||'친구'}">`:`<span class="fallback ${cls}" role="img" aria-label="작은 친구">♡</span>`}
 const machine=()=>`<div class="machine"><div class="machine-top">LUCKY CLUB <span>★</span></div><div class="globe"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="machine-base"><span class="dial">✳</span><span class="slot"></span></div><div class="capsule"></div></div>`;
 function shell(body,theme='survey'){root.className=theme;root.innerHTML=`<div class="app-shell"><header><span>✳ TINY SURVEY</span><span class="edition">VOL. 001</span></header><section class="scene" tabindex="-1">${body}</section><footer>${theme==='finale'?'MADE WITH A WHOLE LOT OF ♡':'취향 수집소 · 아주 주관적인 분석'}</footer></div>`; root.querySelector('.scene').focus({preventScroll:true});root.querySelectorAll('img').forEach(img=>{img.onerror=()=>{const el=document.createElement('span');el.className=img.className+' fallback';el.textContent='♡';el.setAttribute('aria-label',img.alt);img.replaceWith(el)}})}
-function enter(next){if(state==='BIRTHDAY_FINALE')stopBgm();const launch=next==='BIRTHDAY_FINALE'&&(state==='WIN'||fireworksRequested);clear();state=next;render();if(launch)startFireworks();if(next==='BIRTHDAY_FINALE')startBgm();}
+function enter(next){
+  const previous=state,launch=next==='BIRTHDAY_FINALE'&&(previous==='WIN'||fireworksRequested);
+  wantedMusic=null;
+  if(previous==='FAKE_AD_LETTER'&&next==='GACHA_SECOND')fadeOutBgm(250);else stopBgm();
+  clear();state=next;if(next==='BIRTHDAY_FINALE')wantedMusic='birthday';render();
+  if(launch)startFireworks();if(next==='BIRTHDAY_FINALE')startBgm();
+}
 function render(){
 if(state==='INTRO')shell(`<div class="sticker">100%<br>주관적</div><h1>아주 간단한<br><span class="highlight">취향 설문</span></h1><p class="lead">당신의 취향을 분석해<br>특별한 결과를 보여드립니다!</p><div class="survey-art" aria-hidden="true"><span>?</span><span>✳</span><span>!</span></div><div class="note">딱 3문항 · 약 30초 · 정답 없음</div>${button('설문 시작하기 ▶','START')}<p class="fine intro-notice">설문을 완료하면 99% 확률로 소정의 상품이 있는 뽑기 기회를 드립니다!</p>`);
 else if(state.startsWith('SURVEY_Q')){let i=Number(state.slice(-1))-1,q=C.questions[i];shell(`<div class="progress"><span style="width:${(i+1)/3*100}%"></span></div><div class="eyebrow">QUESTION 0${i+1} <span>/ 03</span></div><h2>${esc(q.title)}</h2><p class="muted">고민 말고, 지금 떠오르는 쪽으로!</p><div class="options">${q.options.map((o,j)=>button(`<small>0${j+1}</small> ${esc(o)} <span>↗</span>`,'ANSWER')).join('')}</div><div class="mini-star" aria-hidden="true">✳</div>`)}
@@ -32,24 +38,28 @@ let letterPhase='idle', paragraphIndex=0, typing=false, charTimer=null, advanceT
 const cancel=id=>{if(id!==null){clearTimeout(id);timers.delete(id)}};
 function stars(){return cinema.enable_stars?`<div class="cosmos-stars" aria-hidden="true">${Array.from({length:24},(_,i)=>`<i style="--sx:${(i*37+11)%100}%;--sy:${(i*53+7)%100}%;--twinkle:${3+i%4}s;--lag:${i%7*.25}s"></i>`).join('')}</div>`:''}
 function startCinematic(){
-  letterPhase='opening';lastTap=-Infinity;
-  shell(`<div class="cinema-backdrop" aria-hidden="true"></div>${stars()}<div class="birth-light" aria-hidden="true"></div><div class="cinema-label">광고 재생 중 <span>마음 제공 · 패러디</span></div><div class="cinema-stage"><p class="opening-copy" aria-live="polite"></p></div><button class="skip secondary" data-event="SKIP">오프닝 건너뛰기</button>`,'cinematic');
+  letterPhase='opening';lastTap=-Infinity;wantedMusic=replay?'letter_bgm':'ad_intro';bgmMuted=false;root.dataset.act=replay?'envelope':'blackout';
+  shell(`<div class="cinema-backdrop" aria-hidden="true"></div>${stars()}<div class="birth-light" aria-hidden="true"></div><div class="cinema-label">광고 재생 중 <span>마음 제공 · 패러디</span></div><div class="cinema-stage"><p class="opening-copy" aria-live="polite"></p></div><button class="skip secondary" data-event="SKIP">오프닝 건너뛰기</button>${musicControl()}`,'cinematic');
+  if(musicMeta(wantedMusic)?.available)playMusic(true);else if(!replay)prepareMusic('letter_bgm');
   if(replay){openEnvelope();return}
   root.dataset.act='blackout';later(()=>openingLine(0),cinema.blackout_ms);
 }
 function openingLine(i){
+  if(i===3){wantedMusic=null;stopBgm();refreshMusicControl()}
   const lines=cinema.opening_lines||['태초에 이 세상에 아무것도 없었다...','빛이 있으라.....','그 말의 끝에 한 존재가 태어났다....','바로','너!'];
   root.dataset.act=['dark','light','existence','pause','you'][i];
+  if(i===4)targetMusic('letter_bgm');
   const p=root.querySelector('.opening-copy');p.className='opening-copy'+(i===4?' you':'');p.textContent=lines[i]||'';
   // Replacing the node restarts only its CSS entrance; stars remain mounted.
   const fresh=p.cloneNode(true);p.replaceWith(fresh);
-  if(i===3){later(()=>openingLine(4),800+cinema.pause_before_you_ms);return}
+  if(i===3){later(()=>openingLine(4),cinema.pause_before_you_ms);return}
   const duration=i===4?cinema.you_ms:cinema.opening_durations_ms[i];
+  if(i===2)later(()=>fadeOutBgm(250),Math.max(0,duration-300));
   later(()=>fresh.classList.add('leaving'),Math.max(0,duration-500));
   later(()=>i===4?openEnvelope():openingLine(i+1),duration);
 }
 function openEnvelope(){
-  clear();letterPhase='envelope';root.dataset.act='envelope';
+  clear();letterPhase='envelope';root.dataset.act='envelope';targetMusic('letter_bgm');
   const stage=root.querySelector('.cinema-stage');
   root.querySelector('.skip').textContent='편지 바로 읽기';
   if(!cinema.enable_envelope){showLetter();return}
@@ -71,7 +81,7 @@ function bindPaperScroll(paper){
 }
 function showLetter(){
   if(state!=='FAKE_AD_LETTER')return;
-  clear();letterPhase='body';paragraphIndex=0;lastTap=-Infinity;followLetter=true;paperGesture=null;suppressPaperTapUntil=0;root.dataset.act='letter';
+  clear();letterPhase='body';paragraphIndex=0;lastTap=-Infinity;followLetter=true;paperGesture=null;suppressPaperTapUntil=0;root.dataset.act='letter';targetMusic('letter_bgm');
   root.querySelector('.cinema-stage').innerHTML=`<div class="cinema-paper" role="region" aria-label="너에게 쓰는 편지" tabindex="0"><div class="letter-heading">Dear. ${esc(C.nickname)}</div><div class="paragraph-counter" aria-live="off"></div><div class="paragraph-window"></div><div class="signature-spark" aria-hidden="true">✧</div><div class="letter-reward" aria-live="polite"></div></div><p class="cinema-hint">이전 문장은 스크롤해서 다시 읽을 수 있어요.</p><button class="letter-next secondary" data-event="LETTER_NEXT">지금 문장 완성</button>`;
   bindPaperScroll(root.querySelector('.cinema-paper'));
   const skip=root.querySelector('.skip');skip.hidden=false;skip.textContent='편지 전체 보기';typeParagraph(0);
@@ -118,62 +128,97 @@ function skipLetter(){
   paragraphIndex=C.letter_lines.length-1;endLetter();
 }
 
-// One media element survives finale re-renders; no request is made for absent audio.
-let bgm=null, bgmPlaying=false, bgmMuted=false, bgmFailed=false, bgmAttempt=0;
-function musicControl(){return C.bgm_available&&!bgmFailed?'<button class="music-toggle secondary" data-event="MUSIC" aria-label="음악 재생하기" aria-pressed="false">🎵 음악 재생하기</button>':''}
+// A single media element serves every track. Fades have their own bounded lifecycle.
+let bgm=null, bgmTrack=null, wantedMusic=null, bgmPlaying=false, bgmMuted=false, bgmFailed=false, bgmAttempt=0;
+let allMusicMuted=false, fadeFrame=0, fadeTimer=0, fadeRunning=false;
+const failedMusic=new Set();
+const musicFiles={ad_intro:'ad_intro.mp3',letter_bgm:'letter_bgm.mp3',birthday:'birthday.mp3'};
+const musicVolume=track=>track==='birthday'?.4:.35;
+function musicMeta(track){return C.audio_tracks?.[track]||(track==='birthday'?{available:!!C.bgm_available,version:C.bgm_version}:null)}
+function musicAllowed(track=wantedMusic){return !!track&&track===wantedMusic&&!document.hidden&&((state==='BIRTHDAY_FINALE'&&track==='birthday')||(state==='FAKE_AD_LETTER'&&root.dataset.act!=='pause'&&track!=='birthday'))}
+function musicButtons(){return wantedMusic&&musicMeta(wantedMusic)?.available&&!failedMusic.has(wantedMusic)?'<button class="music-toggle secondary" data-event="MUSIC" aria-label="음악 재생하기" aria-pressed="false">🎵 음악 재생하기</button><button class="music-mute secondary" data-event="MUSIC_MUTE" aria-label="모든 음악 음소거" aria-pressed="false">🔇 음소거</button>':''}
+function musicControl(){const buttons=musicButtons();return `<div class="music-controls"${buttons?'':' hidden'}>${buttons}</div>`}
+function refreshMusicControl(){
+  const host=root.querySelector('.music-controls');if(!host)return;
+  const markup=musicButtons();host.hidden=!markup;host.innerHTML=markup;updateMusicControl();
+}
 function updateMusicControl(){
   const control=root.querySelector('.music-toggle');if(!control)return;
-  control.hidden=bgmFailed;
   control.textContent=bgmPlaying?'⏸ 음악 일시정지':'🎵 음악 재생하기';
-  control.setAttribute('aria-label',bgmPlaying?'음악 일시정지':'음악 재생하기');
-  control.setAttribute('aria-pressed',String(bgmPlaying));
+  control.setAttribute('aria-label',bgmPlaying?'음악 일시정지':'음악 재생하기');control.setAttribute('aria-pressed',String(bgmPlaying));control.disabled=fadeRunning||!musicAllowed();
+  const mute=root.querySelector('.music-mute');if(mute){mute.textContent=allMusicMuted?'🔊 소리 켜기':'🔇 음소거';mute.setAttribute('aria-label',allMusicMuted?'모든 음악 소리 켜기':'모든 음악 음소거');mute.setAttribute('aria-pressed',String(allMusicMuted));}
 }
-function getBgm(){
-  if(!C.bgm_available||bgmFailed)return null;
-  if(!bgm){
-    bgm=document.createElement('audio');bgm.className='birthday-bgm';bgm.hidden=true;
-    bgm.preload='none';bgm.loop=false;bgm.volume=.4;bgm.muted=true;
-    bgm.setAttribute('playsinline','');bgm.src='app/static/audio/birthday.mp3'+(C.bgm_version?'?v='+encodeURIComponent(C.bgm_version):'');
-    bgm.addEventListener('ended',()=>{bgmAttempt++;bgmPlaying=false;bgm.muted=true;bgm.pause();updateMusicControl()});
-    bgm.addEventListener('error',()=>{bgmFailed=true;stopBgm();updateMusicControl()});
-    document.body.append(bgm);
-  }
-  return bgm;
-}
+function cancelMusicFade(){cancelAnimationFrame(fadeFrame);clearTimeout(fadeTimer);fadeFrame=fadeTimer=0;fadeRunning=false;}
 function stopBgm(){
-  bgmAttempt++;bgmPlaying=false;
+  cancelMusicFade();bgmAttempt++;bgmPlaying=false;
   if(bgm){bgm.muted=true;bgm.pause();try{bgm.currentTime=0}catch{}}
 }
-function prepareBgm(){
-  const audio=getBgm();if(!audio)return;bgmMuted=false;
-  ++bgmAttempt;audio.muted=true;
-  // Called synchronously from the second DRAW touch, never audibly outside finale.
-  try{Promise.resolve(audio.play()).then(()=>{
-    if(state!=='BIRTHDAY_FINALE'||bgmMuted||document.hidden){audio.muted=true;audio.pause();try{audio.currentTime=0}catch{}}
-  }).catch(()=>{/* The finale button remains the supported fallback. */})}catch{}
+function getBgm(track='birthday'){
+  if(!musicMeta(track)?.available||failedMusic.has(track))return null;
+  if(!bgm){
+    bgm=document.createElement('audio');bgm.className='birthday-bgm';bgm.hidden=true;bgm.preload='none';bgm.muted=true;bgm.setAttribute('playsinline','');
+    bgm.addEventListener('ended',()=>{if(bgm.ended===false)return;bgmAttempt++;bgmPlaying=false;bgm.muted=true;bgm.pause();updateMusicControl()});
+    bgm.addEventListener('error',()=>{if(bgm.error===null)return;failedMusic.add(bgmTrack);bgmFailed=true;stopBgm();refreshMusicControl()});
+    document.body.append(bgm);
+  }
+  if(bgmTrack!==track){
+    stopBgm();bgmTrack=track;bgmFailed=false;
+    const version=musicMeta(track).version;bgm.src='app/static/audio/'+musicFiles[track]+(version?'?v='+encodeURIComponent(version):'');
+  }
+  bgm.loop=track==='letter_bgm';bgm.volume=musicVolume(track);return bgm;
 }
-function startBgm(restart=true){
-  if(state!=='BIRTHDAY_FINALE'||document.hidden)return;
-  if(restart)bgmMuted=false;
-  const audio=getBgm();if(!audio||bgmMuted){updateMusicControl();return}
-  const attempt=++bgmAttempt;bgmPlaying=false;
+function playMusic(restart=true){
+  if(!musicAllowed()||bgmMuted)return;
+  const track=wantedMusic,audio=getBgm(track);if(!audio){refreshMusicControl();return}
+  cancelMusicFade();const attempt=++bgmAttempt;bgmPlaying=false;
   audio.pause();if(restart||audio.ended){try{audio.currentTime=0}catch{}}
-  audio.muted=false;audio.volume=.4;
-  const rejected=()=>{if(attempt===bgmAttempt){bgmPlaying=false;updateMusicControl()}};
+  audio.muted=allMusicMuted;audio.volume=musicVolume(track);
+  const rejected=error=>{if(attempt!==bgmAttempt)return;if(error?.name==='NotSupportedError'){failedMusic.add(track);bgmFailed=true;refreshMusicControl()}else updateMusicControl()};
   try{Promise.resolve(audio.play()).then(()=>{
-    if(attempt!==bgmAttempt){if(state!=='BIRTHDAY_FINALE'||bgmMuted||document.hidden){audio.muted=true;audio.pause()}return}
-    if(state!=='BIRTHDAY_FINALE'||bgmMuted||document.hidden){stopBgm();return}
+    if(attempt!==bgmAttempt){if(!musicAllowed(bgmTrack)||bgmMuted){audio.muted=true;audio.pause()}return}
+    if(!musicAllowed(track)||bgmMuted){stopBgm();return}
     bgmPlaying=true;updateMusicControl();
-  }).catch(rejected)}catch{rejected()}
+  }).catch(rejected)}catch(error){rejected(error)}
   updateMusicControl();
 }
+function targetMusic(track){
+  if(wantedMusic===track)return;
+  stopBgm();wantedMusic=track;bgmMuted=false;bgmFailed=failedMusic.has(track);refreshMusicControl();playMusic(true);
+}
+function prepareMusic(track){
+  const audio=getBgm(track);if(!audio)return;
+  bgmMuted=false;const attempt=++bgmAttempt;audio.muted=true;
+  // Direct gesture preparation never emits sound before its scene.
+  try{Promise.resolve(audio.play()).then(()=>{
+    if(attempt!==bgmAttempt){if(!musicAllowed(bgmTrack)||bgmMuted){audio.muted=true;audio.pause()}return}
+    if(!musicAllowed(track)||bgmMuted){audio.muted=true;audio.pause();try{audio.currentTime=0}catch{}}
+  }).catch(()=>{})}catch{}
+}
+function prepareBgm(){prepareMusic('birthday')}
+function startBgm(restart=true){
+  if(state!=='BIRTHDAY_FINALE'||document.hidden)return;
+  wantedMusic='birthday';if(restart)bgmMuted=false;refreshMusicControl();playMusic(restart);
+}
+function fadeOutBgm(duration=250){
+  cancelMusicFade();if(!bgm||bgm.paused){stopBgm();updateMusicControl();return}
+  const audio=bgm,attempt=++bgmAttempt,start=performance.now(),volume=audio.volume;
+  fadeRunning=true;updateMusicControl();
+  const finish=()=>{if(attempt!==bgmAttempt)return;stopBgm();updateMusicControl()};
+  function step(now){if(attempt!==bgmAttempt)return;audio.volume=volume*Math.max(0,1-(now-start)/duration);if(now-start>=duration)finish();else fadeFrame=requestAnimationFrame(step)}
+  fadeFrame=requestAnimationFrame(step);fadeTimer=setTimeout(finish,duration);
+}
 function toggleBgm(){
-  if(state!=='BIRTHDAY_FINALE')return;
+  if(!musicAllowed()||fadeRunning)return;
   if(bgmPlaying){bgmMuted=true;bgmAttempt++;bgmPlaying=false;bgm.muted=true;bgm.pause();updateMusicControl()}
-  else{bgmMuted=false;startBgm(false)}
+  else{bgmMuted=false;playMusic(false)}
+}
+function toggleMusicMute(){
+  if(!musicAllowed())return;
+  allMusicMuted=!allMusicMuted;if(bgm)bgm.muted=allMusicMuted||bgmMuted;
+  updateMusicControl();
 }
 window.addEventListener('pagehide',()=>{stopBgm();updateMusicControl()});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){stopBgm();updateMusicControl()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopBgm();updateMusicControl()});
 
 // One bounded Canvas loop per celebration. Coordinates stay inside this iframe.
 function startFireworks(){
@@ -217,7 +262,8 @@ else if(state==='FAKE_AD_LETTER'&&event==='LETTER_DONE')enter(replay?'BIRTHDAY_F
 else if(state==='RETRY_READY'&&event==='RETRY')enter('GACHA_SECOND');
 else if(state==='WIN'&&event==='REVEAL')enter('BIRTHDAY_FINALE');
 else if(state==='BIRTHDAY_FINALE'&&event==='CELEBRATE'){if(fireworksActive)return;fireworksRequested=true;enter('BIRTHDAY_FINALE');}
-else if(state==='BIRTHDAY_FINALE'&&event==='MUSIC')toggleBgm();
+else if(['BIRTHDAY_FINALE','FAKE_AD_LETTER'].includes(state)&&event==='MUSIC')toggleBgm();
+else if(['BIRTHDAY_FINALE','FAKE_AD_LETTER'].includes(state)&&event==='MUSIC_MUTE')toggleMusicMute();
 else if(state==='BIRTHDAY_FINALE'&&event==='READ'){replay=true;enter('FAKE_AD_LETTER')}
 }
 function fail(){stopBgm();clear();root.className='survey';root.innerHTML='<div class="app-shell"><h2>잠깐, 설문지가 엉켰어요.</h2><p>새로고침하면 처음부터 다시 시작할 수 있어요.</p><button onclick="location.reload()">새로고침</button></div>'}

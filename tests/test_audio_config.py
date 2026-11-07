@@ -11,7 +11,7 @@ import types
 ROOT = Path(__file__).resolve().parents[1]
 
 class AudioConfigTests(TestCase):
-    def render(self, content=b"", error=None):
+    def render(self, content=b"", error=None, files=None):
         frames, errors = [], []
         st = types.ModuleType("streamlit")
         st.set_page_config = lambda **kwargs: None
@@ -19,8 +19,17 @@ class AudioConfigTests(TestCase):
         st.iframe = lambda html, **kwargs: frames.append(html)
         st.error = errors.append
         st.caption = lambda *args: None
+        def read_audio(path):
+            if files is not None:
+                value = files.get(path.name, FileNotFoundError())
+                if isinstance(value, OSError):
+                    raise value
+                return value
+            if error is not None:
+                raise error
+            return content
         with patch.dict(sys.modules, {"streamlit": st}), patch.object(
-            Path, "read_bytes", return_value=content, side_effect=error
+            Path, "read_bytes", new=read_audio
         ):
             runpy.run_path(str(ROOT / "app.py"))
         self.assertEqual(errors, [])
@@ -45,6 +54,19 @@ class AudioConfigTests(TestCase):
 
     def test_empty_audio_stays_silent(self):
         self.assertFalse(self.render(b"")["bgm_available"])
+
+    def test_optional_tracks_are_independent_and_hash_their_own_content(self):
+        config = self.render(files={"birthday.mp3": b"birthday", "letter_bgm.mp3": b"letter"})
+        self.assertFalse(config["audio_tracks"]["ad_intro"]["available"])
+        self.assertTrue(config["audio_tracks"]["letter_bgm"]["available"])
+        self.assertTrue(config["audio_tracks"]["birthday"]["available"])
+        self.assertNotEqual(config["audio_tracks"]["letter_bgm"]["version"], config["bgm_version"])
+
+    def test_one_unreadable_track_does_not_disable_others(self):
+        config = self.render(files={"ad_intro.mp3": PermissionError(), "letter_bgm.mp3": b"letter", "birthday.mp3": b"birthday"})
+        self.assertFalse(config["audio_tracks"]["ad_intro"]["available"])
+        self.assertTrue(config["audio_tracks"]["letter_bgm"]["available"])
+        self.assertTrue(config["bgm_available"])
 
 if __name__ == "__main__":
     main()
